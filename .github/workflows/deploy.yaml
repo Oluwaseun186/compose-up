@@ -1,36 +1,39 @@
-name: Deploy to  EC2 Instance on AWS
+name: Deploy to EC2 on push
 
 on:
   push:
-    branches: [origin]
+    branches:
+      - origin  # or your branch
 
 jobs:
   deploy:
-    name: Deploy to EC2
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Set up SSH key
+      - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-
-      - name: Add known hosts
-        run: |
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
       - name: Copy files to EC2
         run: |
-          rsync -avz -e "ssh -i ~/.ssh/id_rsa" ./docker-compose.yml ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/mongo-stack/
+          rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/app
 
-      - name: Deploy via SSH
+      - name: Deploy on EC2
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            cd ~/mongo-stack
-            docker-compose pull
-            docker-compose up -d
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            cd /home/${{ secrets.EC2_USER }}/app
+            docker-compose down
+            docker-compose up -d --build
+          EOF
+
+      - name: Remove old containers
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            docker container prune -f
           EOF
