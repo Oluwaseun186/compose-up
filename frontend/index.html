@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fullstack App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Welcome to the Fullstack App</h1>
+  <button onclick="fetchMessage()">Get Backend Message</button>
+  <p id="message"></p>
+
+  <script>
+    async function fetchMessage() {
+      try {
+        const res = await fetch('/api/message');
+        const data = await res.json();
+        document.getElementById('message').textContent = data.message;
+      } catch (err) {
+        document.getElementById('message').textContent = 'connecting to backend';
+      }
+    }
+  </script>
+</body>
+</html>
